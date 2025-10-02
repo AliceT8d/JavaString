@@ -1,10 +1,9 @@
+#include "JavaString.hpp"
 #include <iostream>
-#include <string>
-
-using namespace std;
+using JavaString::Jstring;
 
 int main()
 {
-    wstring str = L"你好";
-    wcout << sizeof(wstring) << str << endl;
+    Jstring js = "Hello", js2 = "Jstring";
+    std::cout << (js + ", " + js2) << std::endl;
 }
