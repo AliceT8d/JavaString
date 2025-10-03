@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 namespace JavaString {
 class Jstring {
@@ -49,12 +50,16 @@ public:
 
     Jstring& operator=(const Jstring& js)
     {
-        _size = js._size;
-        _ptr = new char[_size + 1];
-        std::strcpy(_ptr, js._ptr);
+        if (this != &js) {
+            delete[] _ptr;
+            _size = js._size;
+            _ptr = new char[_size + 1];
+            std::strcpy(_ptr, js._ptr);
+        }
         return *this;
     }
 
+    // 这么写是否存在问题？
     Jstring operator+(const Jstring& js) const
     {
         auto size = _size + js._size;
@@ -74,6 +79,11 @@ public:
         std::strcat(ptr, str);
 
         return Jstring(ptr, size);
+    }
+
+    char operator[](size_t index) const
+    {
+        return charAt(index);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Jstring& js)
@@ -101,30 +111,28 @@ public:
         return _ptr[index];
     }
 
-    /*
-     * 函数的返回内部_ptr的副本，请及时delete
-     */
-    char* toCharArray() const
+    std::vector<char> toCharArray() const
     {
-        char* copy = new char[_size + 1];
-        std::strcpy(copy, _ptr);
-        return copy;
+        return std::vector<char>(_ptr, _ptr + _size + 1);
     }
 
     /*
-     * 取 [beginIndex, min(_size - 1, endIndex)] 之间的字符串
+     * 取 [beginIndex, min(_size, endIndex)) 之间的字符串
      */
     Jstring substring(size_t beginIndex, size_t endIndex = SIZE_MAX) const
     {
-        if (beginIndex >= endIndex or beginIndex >= _size)
-            throw std::out_of_range("参数不合法！");
-        endIndex = std::min(_size - 1, endIndex);
-        auto size = endIndex - beginIndex + 1;
-        char* ptr = new char[size + 1];
-        for (size_t i = 0; i != size; ++i)
-            ptr[i] = _ptr[beginIndex + i];
-        ptr[size] = '\0';
-        return Jstring(ptr, size);
+        if (beginIndex > _size)
+            throw std::out_of_range("beginIndex > length");
+        if (endIndex == SIZE_MAX)
+            endIndex = _size;
+        if (endIndex < beginIndex or endIndex > _size)
+            throw std::out_of_range("endIndex out of range");
+
+        size_t newSize = endIndex - beginIndex;
+        char* ptr = new char[newSize + 1];
+        std::memcpy(ptr, _ptr + beginIndex, newSize);
+        ptr[newSize] = '\0';
+        return Jstring(ptr, newSize);
     }
 
     bool equals(const Jstring& js) const
@@ -144,12 +152,13 @@ public:
         return true;
     }
 
-    Jstring replace(char oldChar, char newChar)
+    Jstring replace(char oldChar, char newChar) const
     {
         char* ptr = _getMem();
         for (size_t i = 0; _ptr[i] != '\0'; ++i) {
             if (_ptr[i] == oldChar) {
                 ptr[i] = newChar;
+                continue;
             }
             ptr[i] = _ptr[i];
         }
@@ -177,6 +186,62 @@ public:
             ptr[i] = tolower(_ptr[i]);
         }
         return Jstring(ptr, _size);
+    }
+
+    bool contains(const Jstring& js) const
+    {
+        auto result = std::strstr(_ptr, js._ptr);
+        return result != nullptr;
+    }
+
+    std::string toString() const
+    {
+        return std::string(_ptr);
+    }
+
+    /*
+     * 判断 _ptr 在 toffset 位置是否以 prefix 开头
+     * 检测空字符串时，总是为真
+     */
+    bool startsWith(const Jstring& prefix, size_t toffset = 0) const
+    {
+        if (prefix.isEmpty()) return true;
+        if (toffset >= _size or prefix._size > _size - toffset)
+            return false;
+        for (size_t index = 0; index != prefix._size; ++index) {
+            if (_ptr[index + toffset] != prefix._ptr[index])
+                return false;
+        }
+        return true;
+    }
+
+    int64_t indexOf(char ch, size_t fromIndex = 0) const
+    {
+        if (fromIndex >= _size) return -1;
+        for (; fromIndex != _size; ++fromIndex) {
+            if (_ptr[fromIndex] == ch) return fromIndex;
+        }
+        return -1;
+    }
+
+    int64_t indexOf(const Jstring& js, size_t fromIndex = 0) const
+    {
+        if (js._size == 0) {
+            if (fromIndex < _size)
+                return static_cast<int64_t>(fromIndex);
+            return -1;
+        }
+        if (fromIndex >= _size or js._size > _size - fromIndex) return -1;
+
+        const char* start = _ptr + fromIndex;
+        const char* end = _ptr + (_size - js._size + 1);
+
+        for (const char* p = start; p != end; ++p) {
+            if (std::memcmp(p, js._ptr, js._size) == 0) {
+                return static_cast<int64_t>(p - _ptr);
+            }
+        }
+        return -1;
     }
 };
 };
