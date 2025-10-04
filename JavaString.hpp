@@ -25,6 +25,11 @@ class Jstring {
         return new char[_size + 1];
     }
 
+    char* _getMem(size_t size) const
+    {
+        return new char[size + 1];
+    }
+
 public:
     Jstring()
     {
@@ -111,7 +116,7 @@ public:
         return _ptr[index];
     }
 
-    std::vector<char> toCharArray() const
+    std::vector<char> toCharVector() const
     {
         return std::vector<char>(_ptr, _ptr + _size + 1);
     }
@@ -242,6 +247,26 @@ public:
             }
         }
         return -1;
+    }
+
+    Jstring trim() const
+    {
+        if (this->isEmpty()) return *this;
+        size_t begin {}, end { _size - 1 };
+        while (begin < _size && (_ptr[begin] <= 32 || _ptr[begin] == 127)) {
+            ++begin;
+        }
+        while (end > begin && (_ptr[end] <= 32 || _ptr[end] == 127)) {
+            --end;
+        }
+        if (begin > end)
+            return Jstring();
+
+        auto size = end - begin + 1;
+        auto ptr = _getMem(size);
+        std::memcpy(ptr, _ptr + begin, size);
+        ptr[size] = '\0';
+        return Jstring(ptr, size);
     }
 };
 };
