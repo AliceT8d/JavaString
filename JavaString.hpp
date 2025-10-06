@@ -6,16 +6,16 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <vector>
 #include <stdexcept>
 #include <string>
 
 namespace JavaString {
 class Jstring {
     char* _ptr;
-    std::size_t _size;
-    // std::size_t length;
+    size_t _size;
 
-    Jstring(char* ptr, std::size_t size)
+    Jstring(char* ptr, size_t size)
         : _ptr(ptr), _size(size)
     {
     }
@@ -64,7 +64,6 @@ public:
         return *this;
     }
 
-    // 这么写是否存在问题？
     Jstring operator+(const Jstring& js) const
     {
         auto size = _size + js._size;
@@ -102,7 +101,7 @@ public:
         delete[] _ptr;
     }
 
-    std::size_t length() const
+    size_t length() const
     {
         return _size;
     }
@@ -110,7 +109,7 @@ public:
     {
         return _size == 0;
     }
-    char charAt(std::size_t index) const
+    char charAt(size_t index) const
     {
         if (index >= _size) throw std::out_of_range("访问位置超过数组长度！");
         return _ptr[index];
@@ -118,7 +117,7 @@ public:
 
     std::vector<char> toCharVector() const
     {
-        return std::vector<char>(_ptr, _ptr + _size + 1);
+        return std::vector<char>(_ptr, _ptr + _size);
     }
 
     /*
@@ -253,10 +252,10 @@ public:
     {
         if (this->isEmpty()) return *this;
         size_t begin {}, end { _size - 1 };
-        while (begin < _size && (_ptr[begin] <= 32 || _ptr[begin] == 127)) {
+        while (begin < _size && isspace(static_cast<unsigned char>(_ptr[begin]))) {
             ++begin;
         }
-        while (end > begin && (_ptr[end] <= 32 || _ptr[end] == 127)) {
+        while (end > begin && isspace(static_cast<unsigned char>(_ptr[end]))) {
             --end;
         }
         if (begin > end)
